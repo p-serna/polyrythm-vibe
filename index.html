@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polyrhythm Trainer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ffffff;
+            overflow-x: hidden;
+            touch-action: pan-x pan-y;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #rhythmCanvas {
+            background: radial-gradient(circle at center, #1e1e3f, #0f0f1a);
+            cursor: crosshair;
+            display: block;
+        }
+
+        .controls {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 120px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            min-height: 44px;
+        }
+
+        .btn:hover, .btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn.playing {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 12px;
+            min-height: 36px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tempo-display {
+            font-weight: bold;
+            font-size: 16px;
+            min-width: 60px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 15px;
+        }
+
+        .spot-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .spot-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .spot-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .spot-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .spot-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            outline: none;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .spot-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .volume-slider {
+            flex: 1;
+            height: 4px;
+            min-width: 60px;
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .grid-toggle {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 10;
+        }
+
+        .settings-toggle {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: auto;
+        }
+
+        .count-in-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            font-weight: bold;
+            color: #4facfe;
+            text-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .control-group {
+                min-width: 100%;
+                justify-content: space-between;
+            }
+            
+            .spot-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.2em;
+            }
+            
+            .controls {
+                padding: 10px;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .header {
+                padding: 5px;
+            }
+            
+            .header h1 {
+                font-size: 1em;
+                margin-bottom: 2px;
+            }
+            
+            .controls {
+                padding: 8px;
+            }
+            
+            .control-row {
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Polyrhythm Trainer</h1>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="rhythmCanvas"></canvas>
+            <button class="grid-toggle" id="gridToggle">Grid: OFF</button>
+            <div class="count-in-display" id="countInDisplay"></div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <button class="btn" id="playBtn">Play</button>
+                    <button class="btn btn-small" id="resetBtn">Reset</button>
+                </div>
+                
+                <div class="slider-container">
+                    <span>Tempo:</span>
+                    <input type="range" class="slider" id="tempoSlider" min="40" max="200" value="60">
+                    <div class="tempo-display" id="tempoDisplay">60</div>
+                </div>
+                
+                <button class="settings-toggle" id="settingsToggle">Settings</button>
+            </div>
+            
+            <div class="preset-buttons">
+                <button class="btn btn-small" onclick="loadPreset('basic')">2:1 Basic</button>
+                <button class="btn btn-small" onclick="loadPreset('intermediate')">3:2 + 4:3</button>
+                <button class="btn btn-small" onclick="loadPreset('advanced')">Complex</button>
+                <button class="btn btn-small" onclick="loadPreset('clear')">Clear All</button>
+            </div>
+            
+            <div class="spot-panel" id="spotPanel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3>Rhythm Spots</h3>
+                    <div>
+                        <button class="btn btn-small" id="addSpotBtn">Add Spot</button>
+                        <label style="margin-left: 15px;">
+                            <input type="checkbox" id="audioToggle" checked> Audio
+                        </label>
+                        <label style="margin-left: 10px;">
+                            <input type="checkbox" id="countInToggle"> Count-in
+                        </label>
+                    </div>
+                </div>
+                <div class="spot-controls" id="spotControls"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PolyrhythmTrainer {
+            constructor() {
+                this.canvas = document.getElementById('rhythmCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                this.spots = [];
+                this.isPlaying = false;
+                this.tempo = 120;
+                this.startTime = 0;
+                this.showGrid = false;
+                this.audioEnabled = true;
+                this.countInEnabled = false;
+                this.countInBeats = 0;
+                this.isCountingIn = false;
+                
+                this.colors = [
+                    '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+                    '#fa709a', '#fee140', '#a8edea', '#fed6e3',
+                    '#ffecd2', '#fcb69f', '#ff9a9e', '#fecfef'
+                ];
+                
+                this.rhythmPatterns = {
+                    '1:1': { ratio: [1, 1], name: 'Unison' },
+                    '2:1': { ratio: [2, 1], name: '2 against 1' },
+                    '3:1': { ratio: [3, 1], name: '3 against 1' },
+                    '3:2': { ratio: [3, 2], name: '3 against 2' },
+                    '4:1': { ratio: [4, 1], name: '4 against 1' },
+                    '4:3': { ratio: [4, 3], name: '4 against 3' },
+                    '5:1': { ratio: [5, 1], name: '5 against 1' },
+                    '5:2': { ratio: [5, 2], name: '5 against 2' },
+                    '5:3': { ratio: [5, 3], name: '5 against 3' },
+                    '5:4': { ratio: [5, 4], name: '5 against 4' },
+                    '7:4': { ratio: [7, 4], name: '7 against 4' },
+                    '7:5': { ratio: [7, 5], name: '7 against 5' },
+                    'custom': { ratio: [1, 1], name: 'Custom' }
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.setupEventListeners();
+                this.addSpot(); // Start with one spot
+                this.addSpot(); // And another for demo
+                this.loadSettings();
+                this.animate();
+            }
+            
+            setupCanvas() {
+                const resizeCanvas = () => {
+                    const container = this.canvas.parentElement;
+                    this.canvas.width = container.clientWidth;
+                    this.canvas.height = container.clientHeight;
+                };
+                
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(resizeCanvas, 100);
+                });
+            }
+            
+            setupEventListeners() {
+                // Play/Pause button
+                document.getElementById('playBtn').addEventListener('click', () => {
+                    if (!this.isPlaying) {
+                        this.start();
+                    } else {
+                        this.stop();
+                    }
+                });
+                
+                // Reset button
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.reset();
+                });
+                
+                // Tempo slider
+                const tempoSlider = document.getElementById('tempoSlider');
+                const tempoDisplay = document.getElementById('tempoDisplay');
+                tempoSlider.addEventListener('input', (e) => {
+                    this.tempo = parseInt(e.target.value);
+                    tempoDisplay.textContent = this.tempo;
+                    this.saveSettings();
+                });
+                
+                // Add spot button
+                document.getElementById('addSpotBtn').addEventListener('click', () => {
+                    this.addSpot();
+                });
+                
+                // Grid toggle
+                document.getElementById('gridToggle').addEventListener('click', () => {
+                    this.showGrid = !this.showGrid;
+                    document.getElementById('gridToggle').textContent = 
+                        `Grid: ${this.showGrid ? 'ON' : 'OFF'}`;
+                });
+                
+                // Audio toggle
+                document.getElementById('audioToggle').addEventListener('change', (e) => {
+                    this.audioEnabled = e.target.checked;
+                    this.saveSettings();
+                });
+                
+                // Count-in toggle
+                document.getElementById('countInToggle').addEventListener('change', (e) => {
+                    this.countInEnabled = e.target.checked;
+                    this.saveSettings();
+                });
+                
+                // Canvas interaction
+                this.setupCanvasInteraction();
+            }
+            
+            setupCanvasInteraction() {
+                let isDragging = false;
+                let dragSpot = null;
+                let dragOffset = { x: 0, y: 0 };
+                
+                const getEventPos = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    return {
+                        x: clientX - rect.left,
+                        y: clientY - rect.top
+                    };
+                };
+                
+                const startDrag = (e) => {
+                    const pos = getEventPos(e);
+                    dragSpot = this.getSpotAt(pos.x, pos.y);
+                    if (dragSpot) {
+                        isDragging = true;
+                        dragOffset.x = pos.x - dragSpot.x;
+                        dragOffset.y = pos.y - dragSpot.y;
+                        this.canvas.style.cursor = 'grabbing';
+                        e.preventDefault();
+                    }
+                };
+                
+                const drag = (e) => {
+                    if (isDragging && dragSpot) {
+                        const pos = getEventPos(e);
+                        dragSpot.x = pos.x - dragOffset.x;
+                        dragSpot.y = pos.y - dragOffset.y;
+                        
+                        // Keep spot within bounds
+                        dragSpot.x = Math.max(30, Math.min(this.canvas.width - 30, dragSpot.x));
+                        dragSpot.y = Math.max(30, Math.min(this.canvas.height - 30, dragSpot.y));
+                        
+                        this.saveSettings();
+                        e.preventDefault();
+                    }
+                };
+                
+                const endDrag = () => {
+                    isDragging = false;
+                    dragSpot = null;
+                    this.canvas.style.cursor = 'crosshair';
+                };
+                
+                // Mouse events
+                this.canvas.addEventListener('mousedown', startDrag);
+                this.canvas.addEventListener('mousemove', drag);
+                this.canvas.addEventListener('mouseup', endDrag);
+                this.canvas.addEventListener('mouseleave', endDrag);
+                
+                // Touch events
+                this.canvas.addEventListener('touchstart', startDrag, { passive: false });
+                this.canvas.addEventListener('touchmove', drag, { passive: false });
+                this.canvas.addEventListener('touchend', endDrag);
+                this.canvas.addEventListener('touchcancel', endDrag);
+            }
+            
+            getSpotAt(x, y) {
+                for (let spot of this.spots) {
+                    const distance = Math.sqrt((x - spot.x) ** 2 + (y - spot.y) ** 2);
+                    if (distance <= spot.radius + 10) {
+                        return spot;
+                    }
+                }
+                return null;
+            }
+            
+            addSpot() {
+                if (this.spots.length >= 10) return;
+                
+                const spot = {
+                    id: Date.now() + Math.random(),
+                    x: this.canvas.width / 2 + (Math.random() - 0.5) * 200,
+                    y: this.canvas.height / 2 + (Math.random() - 0.5) * 200,
+                    radius: 25,
+                    color: this.colors[this.spots.length % this.colors.length],
+                    pattern: '2:1',
+                    volume: 0.5,
+                    lastBeat: -1,
+                    isActive: false
+                };
+                
+                // Ensure spot is within bounds
+                spot.x = Math.max(30, Math.min(this.canvas.width - 30, spot.x));
+                spot.y = Math.max(30, Math.min(this.canvas.height - 30, spot.y));
+                
+                this.spots.push(spot);
+                this.updateSpotControls();
+                this.saveSettings();
+            }
+            
+            removeSpot(spotId) {
+                this.spots = this.spots.filter(spot => spot.id !== spotId);
+                this.updateSpotControls();
+                this.saveSettings();
+            }
+            
+            updateSpotControls() {
+                const container = document.getElementById('spotControls');
+                container.innerHTML = '';
+                
+                this.spots.forEach((spot, index) => {
+                    const spotDiv = document.createElement('div');
+                    spotDiv.className = 'spot-item';
+                    
+                    spotDiv.innerHTML = `
+                        <div class="spot-color" style="background-color: ${spot.color}"></div>
+                        <select class="spot-select" data-spot-id="${spot.id}">
+                            ${Object.entries(this.rhythmPatterns).map(([key, pattern]) => 
+                                `<option value="${key}" ${spot.pattern === key ? 'selected' : ''}>${pattern.name}</option>`
+                            ).join('')}
+                        </select>
+                        <div class="volume-control">
+                            <span style="font-size: 12px;">Vol:</span>
+                            <input type="range" class="slider volume-slider" min="0" max="1" step="0.1" 
+                                value="${spot.volume}" data-spot-id="${spot.id}">
+                        </div>
+                        <button class="btn btn-small" onclick="trainer.removeSpot('${spot.id}')" style="background: #e74c3c;">Remove</button>
+                    `;
+                    
+                    container.appendChild(spotDiv);
+                });
+                
+                // Add event listeners for the new elements
+                container.querySelectorAll('.spot-select').forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        const spotId = e.target.dataset.spotId;
+                        const spot = this.spots.find(s => s.id == spotId);
+                        if (spot) {
+                            spot.pattern = e.target.value;
+                            this.saveSettings();
+                        }
+                    });
+                });
+                
+                container.querySelectorAll('.volume-slider').forEach(slider => {
+                    slider.addEventListener('input', (e) => {
+                        const spotId = e.target.dataset.spotId;
+                        const spot = this.spots.find(s => s.id == spotId);
+                        if (spot) {
+                            spot.volume = parseFloat(e.target.value);
+                            this.saveSettings();
+                        }
+                    });
+                });
+            }
+            
+            start() {
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                if (this.countInEnabled) {
+                    this.startCountIn();
+                } else {
+                    this.startPlaying();
+                }
+            }
+            
+            startCountIn() {
+                this.isCountingIn = true;
+                this.countInBeats = 4;
+                const beatDuration = 60 / this.tempo;
+                
+                const countDown = () => {
+                    if (this.countInBeats > 0) {
+                        document.getElementById('countInDisplay').textContent = this.countInBeats;
+                        document.getElementById('countInDisplay').style.display = 'block';
+                        
+                        if (this.audioEnabled) {
+                            this.playClick(800); // Higher pitch for count-in
+                        }
+                        
+                        this.countInBeats--;
+                        setTimeout(countDown, beatDuration * 1000);
+                    } else {
+                        document.getElementById('countInDisplay').style.display = 'none';
+                        this.isCountingIn = false;
+                        this.startPlaying();
+                    }
+                };
+                
+                countDown();
+            }
+            
+            startPlaying() {
+                this.isPlaying = true;
+                this.startTime = this.audioContext.currentTime;
+                document.getElementById('playBtn').textContent = 'Stop';
+                document.getElementById('playBtn').classList.add('playing');
+                
+                // Reset all spots
+                this.spots.forEach(spot => {
+                    spot.lastBeat = -1;
+                    spot.isActive = false;
+                });
+            }
+            
+            stop() {
+                this.isPlaying = false;
+                this.isCountingIn = false;
+                document.getElementById('playBtn').textContent = 'Play';
+                document.getElementById('playBtn').classList.remove('playing');
+                document.getElementById('countInDisplay').style.display = 'none';
+                
+                // Reset all spots
+                this.spots.forEach(spot => {
+                    spot.isActive = false;
+                });
+            }
+            
+            reset() {
+                this.stop();
+                this.spots.forEach(spot => {
+                    spot.lastBeat = -1;
+                    spot.isActive = false;
+                });
+            }
+            
+            playClick(frequency = 600) {
+                if (!this.audioEnabled) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.1);
+            }
+            
+            update() {
+                if (!this.isPlaying) return;
+                
+                const currentTime = this.audioContext.currentTime;
+                const elapsedTime = currentTime - this.startTime;
+                const beatDuration = 60 / this.tempo;
+                
+                this.spots.forEach(spot => {
+                    const pattern = this.rhythmPatterns[spot.pattern];
+                    if (!pattern) return;
+                    
+                    const [numerator, denominator] = pattern.ratio;
+                    const spotBeatDuration = beatDuration * (denominator / numerator);
+                    const currentBeat = Math.floor(elapsedTime / spotBeatDuration);
+                    
+                    if (currentBeat > spot.lastBeat) {
+                        spot.lastBeat = currentBeat;
+                        spot.isActive = true;
+                        
+                        if (this.audioEnabled) {
+                            this.playClick(400 + (numerator * 50));
+                        }
+                        
+                        // Schedule deactivation
+                        setTimeout(() => {
+                            spot.isActive = false;
+                        }, Math.min(200, spotBeatDuration * 500));
+                    }
+                });
+            }
+            
+            drawGrid() {
+                if (!this.showGrid) return;
+                
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                this.ctx.lineWidth = 1;
+                
+                const gridSize = 40;
+                
+                for (let x = 0; x < this.canvas.width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                for (let y = 0; y < this.canvas.height; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+            }
+            
+            drawSpots() {
+                this.spots.forEach((spot, index) => {
+                    const pattern = this.rhythmPatterns[spot.pattern];
+                    if (!pattern) return;
+                    
+                    // Base circle
+                    this.ctx.beginPath();
+                    this.ctx.arc(spot.x, spot.y, spot.radius, 0, Math.PI * 2);
+                    
+                    if (spot.isActive) {
+                        // Active state - bright glow
+                        this.ctx.fillStyle = spot.color;
+                        this.ctx.shadowColor = spot.color;
+                        this.ctx.shadowBlur = 30;
+                        this.ctx.fill();
+                        
+                        // Outer ring
+                        this.ctx.beginPath();
+                        this.ctx.arc(spot.x, spot.y, spot.radius + 10, 0, Math.PI * 2);
+                        this.ctx.strokeStyle = spot.color;
+                        this.ctx.lineWidth = 3;
+                        this.ctx.stroke();
+                    } else {
+                        // Inactive state
+                        this.ctx.fillStyle = spot.color + '40';
+                        this.ctx.shadowBlur = 10;
+                        this.ctx.shadowColor = spot.color;
+                        this.ctx.fill();
+                    }
+                    
+                    // Reset shadow
+                    this.ctx.shadowBlur = 0;
+                    
+                    // Pattern indicator
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = 'bold 12px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(spot.pattern, spot.x, spot.y);
+                    
+                    // Volume indicator
+                    const volumeBarWidth = 30;
+                    const volumeBarHeight = 4;
+                    const volumeX = spot.x - volumeBarWidth / 2;
+                    const volumeY = spot.y + spot.radius + 15;
+                    
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    this.ctx.fillRect(volumeX, volumeY, volumeBarWidth, volumeBarHeight);
+                    
+                    this.ctx.fillStyle = spot.color;
+                    this.ctx.fillRect(volumeX, volumeY, volumeBarWidth * spot.volume, volumeBarHeight);
+                });
+            }
+            
+            draw() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grid
+                this.drawGrid();
+                
+                // Draw spots
+                this.drawSpots();
+                
+                // Draw tempo indicator
+                if (this.isPlaying) {
+                    const currentTime = this.audioContext.currentTime;
+                    const elapsedTime = currentTime - this.startTime;
+                    const beatDuration = 60 / this.tempo;
+                    const beatPhase = (elapsedTime % beatDuration) / beatDuration;
+                    
+                    // Main tempo indicator in top center
+                    const centerX = this.canvas.width / 2;
+                    const radius = 15 + Math.sin(beatPhase * Math.PI * 2) * 5;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(centerX, 30, radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(255, 255, 255, ${0.3 + Math.sin(beatPhase * Math.PI * 2) * 0.3})`;
+                    this.ctx.fill();
+                    
+                    this.ctx.strokeStyle = 'white';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                }
+            }
+            
+            animate() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.animate());
+            }
+            
+            saveSettings() {
+                const settings = {
+                    tempo: this.tempo,
+                    audioEnabled: this.audioEnabled,
+                    countInEnabled: this.countInEnabled,
+                    spots: this.spots.map(spot => ({
+                        x: spot.x,
+                        y: spot.y,
+                        color: spot.color,
+                        pattern: spot.pattern,
+                        volume: spot.volume
+                    }))
+                };
+                
+                // Using a simple in-memory storage for this demo
+                // In a real app, you would use localStorage here
+                this.savedSettings = settings;
+            }
+            
+            loadSettings() {
+                // In a real app, you would load from localStorage here
+                if (this.savedSettings) {
+                    const settings = this.savedSettings;
+                    this.tempo = settings.tempo || 120;
+                    this.audioEnabled = settings.audioEnabled !== false;
+                    this.countInEnabled = settings.countInEnabled || false;
+                    
+                    document.getElementById('tempoSlider').value = this.tempo;
+                    document.getElementById('tempoDisplay').textContent = this.tempo;
+                    document.getElementById('audioToggle').checked = this.audioEnabled;
+                    document.getElementById('countInToggle').checked = this.countInEnabled;
+                    
+                    if (settings.spots && settings.spots.length > 0) {
+                        this.spots = [];
+                        settings.spots.forEach(spotData => {
+                            const spot = {
+                                id: Date.now() + Math.random(),
+                                x: spotData.x,
+                                y: spotData.y,
+                                radius: 25,
+                                color: spotData.color,
+                                pattern: spotData.pattern,
+                                volume: spotData.volume,
+                                lastBeat: -1,
+                                isActive: false
+                            };
+                            this.spots.push(spot);
+                        });
+                        this.updateSpotControls();
+                    }
+                }
+            }
+        }
+        
+        // Global functions for preset loading
+        function loadPreset(presetName) {
+            switch (presetName) {
+                case 'basic':
+                    trainer.spots = [];
+                    trainer.addSpot();
+                    trainer.spots[0].pattern = '2:1';
+                    trainer.spots[0].x = trainer.canvas.width * 0.3;
+                    trainer.spots[0].y = trainer.canvas.height * 0.5;
+                    
+                    trainer.addSpot();
+                    trainer.spots[1].pattern = '1:1';
+                    trainer.spots[1].x = trainer.canvas.width * 0.7;
+                    trainer.spots[1].y = trainer.canvas.height * 0.5;
+                    break;
+                    
+                case 'intermediate':
+                    trainer.spots = [];
+                    trainer.addSpot();
+                    trainer.spots[0].pattern = '3:2';
+                    trainer.spots[0].x = trainer.canvas.width * 0.25;
+                    trainer.spots[0].y = trainer.canvas.height * 0.4;
+                    
+                    trainer.addSpot();
+                    trainer.spots[1].pattern = '4:3';
+                    trainer.spots[1].x = trainer.canvas.width * 0.75;
+                    trainer.spots[1].y = trainer.canvas.height * 0.4;
+                    
+                    trainer.addSpot();
+                    trainer.spots[2].pattern = '1:1';
+                    trainer.spots[2].x = trainer.canvas.width * 0.5;
+                    trainer.spots[2].y = trainer.canvas.height * 0.6;
+                    break;
+                    
+                case 'advanced':
+                    trainer.spots = [];
+                    const patterns = ['5:4', '7:5', '3:2', '4:3', '2:1'];
+                    const positions = [
+                        {x: 0.2, y: 0.3}, {x: 0.8, y: 0.3},
+                        {x: 0.2, y: 0.7}, {x: 0.8, y: 0.7},
+                        {x: 0.5, y: 0.5}
+                    ];
+                    
+                    patterns.forEach((pattern, i) => {
+                        trainer.addSpot();
+                        trainer.spots[i].pattern = pattern;
+                        trainer.spots[i].x = trainer.canvas.width * positions[i].x;
+                        trainer.spots[i].y = trainer.canvas.height * positions[i].y;
+                    });
+                    break;
+                    
+                case 'clear':
+                    trainer.spots = [];
+                    break;
+            }
+            
+            trainer.updateSpotControls();
+            trainer.saveSettings();
+        }
+        
+        // Initialize the app
+        let trainer;
+        window.addEventListener('load', () => {
+            trainer = new PolyrhythmTrainer();
+        });
+        
+        // Handle visibility changes to pause audio context
+        document.addEventListener('visibilitychange', () => {
+            if (trainer && document.hidden && trainer.audioContext.state === 'running') {
+                trainer.audioContext.suspend();
+            } else if (trainer && !document.hidden && trainer.audioContext.state === 'suspended') {
+                trainer.audioContext.resume();
+            }
+        });
+        
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+        
+        // Settings panel toggle
+        document.getElementById('settingsToggle').addEventListener('click', () => {
+            const panel = document.getElementById('spotPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>
